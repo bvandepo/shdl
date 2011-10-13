@@ -31,7 +31,7 @@ public class SHDL2VHDLConverter extends JFrame {
 
 	public static void main(String[] args ) {
 		
-		JFrame frame = new SHDL2VHDLConverter("SHDL2VHDLConverter v2.0.1");
+		JFrame frame = new SHDL2VHDLConverter("SHDL2VHDLConverter v2.1.3");
 
 		frame.setBounds(100, 300, 700, 400);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE );
@@ -168,6 +168,15 @@ public class SHDL2VHDLConverter extends JFrame {
 		} catch (Exception e) {
 		}
 	}
+	
+	static String StringArray2String(String[] array) {
+		StringBuffer sb = new StringBuffer();
+		for (int i = 0; i < array.length; i++) {
+			if (i > 0) sb.append(", ");
+			sb.append(array[i]);
+		}
+		return sb.toString();
+	}
 
 	
 	// If <shdlPath> and <destDir> are empty, set them to the directory of <file> and its ../vhdl
@@ -205,11 +214,11 @@ public class SHDL2VHDLConverter extends JFrame {
 	
 	void processFile(File file) {
 		try {
-			// traduction d'une description de graphe d'ï¿½tats
+			// traduction d'une description de graphe d'états
 			if (file.getAbsolutePath().endsWith(".net")) {
 				NetConverter netConverter = new NetConverter(file, errorStream);
 				file = netConverter.start();
-				// mise ï¿½ jour des messages
+				// mise à jour des messages
 				addMessage(baos.toString()); baos.reset();
 				if (file == null) {
 					addMessage("** graph translation failed" + newline);
@@ -268,8 +277,6 @@ public class SHDL2VHDLConverter extends JFrame {
 					addMessage("-- creating 'comm.ini'" + newline);
 					design.generateCommIni(topModule, board, vhdlDir);
 				}
-
-                                JOptionPane.showConfirmDialog(this, "SynthÃ©tizer ?");
 				
 				if (synthesizeCheck.isSelected()) {
 					File projectDir = new File(vhdlDir.getParentFile(), "ISEproject");
@@ -280,7 +287,7 @@ public class SHDL2VHDLConverter extends JFrame {
 						topModuleName = topModuleName + "_comm";
 						moduleNames.add(topModuleName);
 					}
-					// on l'exï¿½cute dans un thread, sinon aucun message ne s'affiche avant le retour de la mï¿½thode
+					// on l'exécute dans un thread, sinon aucun message ne s'affiche avant le retour de la méthode
 					Thread thread = new Thread(new SynthesizeThread(projectDir, vhdlDir, design, topModule, moduleNames, board));
 					thread.start();
 				}
@@ -347,7 +354,7 @@ public class SHDL2VHDLConverter extends JFrame {
 		}
 	}	
 	
-	// on exï¿½cute synthesize dans un thread car sinon les messages ne s'affichent pas au fur et ï¿½ mesure
+	// on exécute synthesize dans un thread car sinon les messages ne s'affichent pas au fur et à mesure
 	class SynthesizeThread implements Runnable {
 		File projectDir;
 		File vhdlDir;
@@ -380,23 +387,23 @@ public class SHDL2VHDLConverter extends JFrame {
 		String topModuleName = topModule.getName();
 		if (hasCommModule) topModuleName = topModuleName + "_comm";
 		
-		// dï¿½truire le rï¿½pertoire projet prï¿½cï¿½dent, s'il existe
+		// détruire le répertoire projet précédent, s'il existe
 		if (projectDir.exists()) deleteDir(projectDir);
 		
-		// crï¿½er le rï¿½pertoire projet
+		// créer le répertoire projet
 		projectDir.mkdir();
 		
-		//- crï¿½er un fichier myproj.lso qui contient le seul mot: work
+		//- créer un fichier myproj.lso qui contient le seul mot: work
 		PrintWriter pw = new PrintWriter(new FileOutputStream(new File(projectDir, topModuleName + ".lso")));
 		pw.println("work");
 		pw.flush();
 		pw.close();		
 		
-		//- crï¿½er un rï¿½pertoire tmp
+		//- créer un répertoire tmp
 		File tmpDir = new File(projectDir, "tmp");
 		tmpDir.mkdir();
 		
-		//- mettre dans myproj.prj la liste des fichiers VHDL ï¿½ synthï¿½tiser
+		//- mettre dans myproj.prj la liste des fichiers VHDL à synthétiser
 		pw = new PrintWriter(new FileOutputStream(new File(projectDir, topModuleName + ".prj")));
 		for (int i = 0; i < moduleNames.size(); i++) {
 			pw.println("vhdl work \"../vhdl/" + moduleNames.get(i) + ".vhd\"");
@@ -404,7 +411,7 @@ public class SHDL2VHDLConverter extends JFrame {
 		pw.flush();
 		pw.close();		
 		
-		//- mettre dans myproj.xst les options pour le synthï¿½tiseur XST
+		//- mettre dans myproj.xst les options pour le synthétiseur XST
 		//(customiser les options -ifn, -ofn et -top)
 		pw = new PrintWriter(new FileOutputStream(new File(projectDir, topModuleName + ".xst")));
 		pw.println("set -tmpdir \"./tmp\"");
@@ -467,7 +474,7 @@ public class SHDL2VHDLConverter extends JFrame {
 		pw.flush();
 		pw.close();		
 		
-		//- exï¿½cuter (synthï¿½se):
+		//- exécuter (synthèse):
 		//xst -ise myproj.ise -intstyle ise -ifn myproj.xst -ofn myproj.syr
 		String[] command = new String[] { System.getenv("XILINX") + "\\bin\\nt\\"+"xst.exe",
 			"-ise", topModuleName + ".ise",
@@ -475,12 +482,13 @@ public class SHDL2VHDLConverter extends JFrame {
 			"-ifn", topModuleName + ".xst",
 			"-ofn", topModuleName + ".syr"
 		};
+		if (verboseCheck.isSelected()) addMessage(StringArray2String(command) + "\n");
 		addMessage("--- synthesize . . .      ");
 		int err = executeWin(command, projectDir);
 		if (err == 0) addMessage("done\n"); else addMessage("** errors found\n");
 		if (err != 0) return;
 		
-		//crï¿½er un fichier Nexys.ucf
+		//créer un fichier Nexys.ucf
 		pw = new PrintWriter(new FileOutputStream(new File(projectDir, "Nexys.ucf")));
 		ArrayList interfaceSignals = design.getTopModule().getInterfaceSignals();
 		if (boardName.equals("Nexys-1000")) {			
@@ -539,7 +547,7 @@ public class SHDL2VHDLConverter extends JFrame {
 			if (hasCommModule || new SHDLSignal("mclk", 0, 0, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"mclk\"    LOC = \"B8\"  ;");
 			if (hasCommModule || new SHDLSignal("astb", 0, 0, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"astb\"   LOC = \"V14\";");
 			if (hasCommModule || new SHDLSignal("dstb", 0, 0, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"dstb\"   LOC = \"U14\";");
-			if (hasCommModule || new SHDLSignal("pwr", 0, 0, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"pwr\"     LOC = \"V16\";");  // appelï¿½ USBFlag dans les .ucf Digilent!!!!!!
+			if (hasCommModule || new SHDLSignal("pwr", 0, 0, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"pwr\"     LOC = \"V16\";");  // appelé USBFlag dans les .ucf Digilent!!!!!!
 			if (hasCommModule || new SHDLSignal("pwait", 0, 0, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"pwait\"   LOC = \"N9\";");
 			if (hasCommModule || new SHDLSignal("pdb", 0, 0, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"pdb<0>\"  LOC = \"R14\";");
 			if (hasCommModule || new SHDLSignal("pdb", 1, 1, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"pdb<1>\"  LOC = \"R13\";");
@@ -582,15 +590,58 @@ public class SHDL2VHDLConverter extends JFrame {
 			if (new SHDLSignal("ssg", 5, 5, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"ssg<5>\"  LOC = \"J17\"  ;");
 			if (new SHDLSignal("ssg", 6, 6, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"ssg<6>\"  LOC = \"H14\"  ;");
 			if (new SHDLSignal("ssg", 7, 7, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"ssg<7>\"  LOC = \"C17\"  ;");
-			if (new SHDLSignal("ja1_out", 0, 0, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"ja1_out\"  LOC = \"L15\"  ;");
-			if (new SHDLSignal("ja2_out", 0, 0, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"ja2_out\"  LOC = \"K12\"  ;");
-			if (new SHDLSignal("ja3_out", 0, 0, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"ja3_out\"  LOC = \"L17\"  ;");
-			if (new SHDLSignal("ja4_out", 0, 0, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"ja4_out\"  LOC = \"M15\"  ;");
+
+			if (new SHDLSignal("red", 0, 0, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"red<0>\"  LOC = \"R9\"  ;");
+			if (new SHDLSignal("red", 1, 1, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"red<1>\"  LOC = \"T8\"  ;");
+			if (new SHDLSignal("red", 2, 2, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"red<2>\"  LOC = \"R8\"  ;");
+			if (new SHDLSignal("grn", 0, 0, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"grn<0>\"  LOC = \"N8\"  ;");
+			if (new SHDLSignal("grn", 1, 1, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"grn<1>\"  LOC = \"P8\"  ;");
+			if (new SHDLSignal("grn", 2, 2, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"grn<2>\"  LOC = \"P6\"  ;");
+			if (new SHDLSignal("blue", 0, 0, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"blue<0>\"  LOC = \"U5\"  ;");
+			if (new SHDLSignal("blue", 1, 1, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"blue<1>\"  LOC = \"U4\"  ;");
+			if (new SHDLSignal("hs", 0, 0, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"hs\"    LOC = \"T4\"  ;");
+			if (new SHDLSignal("vs", 0, 0, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"vs\"    LOC = \"U3\"  ;");
+			
+			if (new SHDLSignal("ja_out", 0, 0, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"ja_out<0>\"  LOC = \"L15\"  ;");
+			if (new SHDLSignal("ja_out", 1, 1, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"ja_out<1>\"  LOC = \"K12\"  ;");
+			if (new SHDLSignal("ja_out", 2, 2, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"ja_out<2>\"  LOC = \"L17\"  ;");
+			if (new SHDLSignal("ja_out", 3, 3, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"ja_out<3>\"  LOC = \"M15\"  ;");
+			if (new SHDLSignal("ja_out", 4, 4, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"ja_out<4>\"  LOC = \"K13\"  ;");
+			if (new SHDLSignal("ja_out", 5, 5, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"ja_out<5>\"  LOC = \"L16\"  ;");
+			if (new SHDLSignal("ja_out", 6, 6, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"ja_out<6>\"  LOC = \"M14\"  ;");
+			if (new SHDLSignal("ja_out", 7, 7, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"ja_out<7>\"  LOC = \"M16\"  ;");
+			
+			if (new SHDLSignal("jb_out", 0, 0, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"jb_out<0>\"  LOC = \"M13\"  ;");
+			if (new SHDLSignal("jb_out", 1, 1, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"jb_out<1>\"  LOC = \"R18\"  ;");
+			if (new SHDLSignal("jb_out", 2, 2, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"jb_out<2>\"  LOC = \"R15\"  ;");
+			if (new SHDLSignal("jb_out", 3, 3, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"jb_out<3>\"  LOC = \"T17\"  ;");
+			if (new SHDLSignal("jb_out", 4, 4, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"jb_out<4>\"  LOC = \"P17\"  ;");
+			if (new SHDLSignal("jb_out", 5, 5, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"jb_out<5>\"  LOC = \"R16\"  ;");
+			if (new SHDLSignal("jb_out", 6, 6, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"jb_out<6>\"  LOC = \"T18\"  ;");
+			if (new SHDLSignal("jb_out", 7, 7, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"jb_out<7>\"  LOC = \"U18\"  ;");
+			
+			if (new SHDLSignal("jc_out", 0, 0, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"jc_out<0>\"  LOC = \"G15\"  ;");
+			if (new SHDLSignal("jc_out", 1, 1, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"jc_out<1>\"  LOC = \"J16\"  ;");
+			if (new SHDLSignal("jc_out", 2, 2, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"jc_out<2>\"  LOC = \"G13\"  ;");
+			if (new SHDLSignal("jc_out", 3, 3, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"jc_out<3>\"  LOC = \"H16\"  ;");
+			if (new SHDLSignal("jc_out", 4, 4, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"jc_out<4>\"  LOC = \"H15\"  ;");
+			if (new SHDLSignal("jc_out", 5, 5, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"jc_out<5>\"  LOC = \"F14\"  ;");
+			if (new SHDLSignal("jc_out", 6, 6, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"jc_out<6>\"  LOC = \"G16\"  ;");
+			if (new SHDLSignal("jc_out", 7, 7, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"jc_out<7>\"  LOC = \"J12\"  ;");
+			
+			if (new SHDLSignal("jd_out", 0, 0, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"jd_out<0>\"  LOC = \"J13\"  ;");
+			if (new SHDLSignal("jd_out", 1, 1, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"jd_out<1>\"  LOC = \"M18\"  ;");
+			if (new SHDLSignal("jd_out", 2, 2, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"jd_out<2>\"  LOC = \"N18\"  ;");
+			if (new SHDLSignal("jd_out", 3, 3, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"jd_out<3>\"  LOC = \"P18\"  ;");
+			if (new SHDLSignal("jd_out", 4, 4, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"jd_out<4>\"  LOC = \"K14\"  ;");
+			if (new SHDLSignal("jd_out", 5, 5, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"jd_out<5>\"  LOC = \"K15\"  ;");
+			if (new SHDLSignal("jd_out", 6, 6, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"jd_out<6>\"  LOC = \"J15\"  ;");
+			if (new SHDLSignal("jd_out", 7, 7, design.getTopModule()).containedIn(interfaceSignals)) pw.println("NET \"jd_out<7>\"  LOC = \"J14\"  ;");
 		}
 		pw.flush();
 		pw.close();
 		
-		//- exï¿½cuter (translation):
+		//- exécuter (translation):
 		//ngdbuild -ise myproj.ise -intstyle ise -dd _ngo -nt timestamp -uc Nexys.ucf -p xc3s1000-ft256-5 myproj.ngc myproj.ngd
 		String fpga = "";
 		if (boardName.equals("Nexys-1000")) {
@@ -608,12 +659,13 @@ public class SHDL2VHDLConverter extends JFrame {
 			topModuleName + ".ngc",
 			topModuleName + ".ngd",
 		};
+		if (verboseCheck.isSelected()) addMessage(StringArray2String(command) + "\n");
 		addMessage("--- translate . . .       ");
 		err = executeWin(command, projectDir);
 		if (err == 0) addMessage("done\n"); else addMessage("** errors found\n");
 		if (err != 0) return;
 		
-		//- exï¿½cuter (map):
+		//- exécuter (map):
 		//map -ise myproj.ise -intstyle ise -p xc3s1000-ft256-5 -cm area -pr b -k 4 -c 100 -o myproj.ncd myproj.ngd myproj.pcf
 		command = new String[] { System.getenv("XILINX") + "\\bin\\nt\\"+"map.exe",
 			"-ise", topModuleName + ".ise",
@@ -621,18 +673,19 @@ public class SHDL2VHDLConverter extends JFrame {
 			"-p", fpga,
 			"-cm", "area",
 			"-pr", "b",
-			"-k", "4",
+			//"-k", "4",
 			"-c", "100",
 			"-o", topModuleName + ".ncd",
 			topModuleName + ".ngd",
 			topModuleName + ".pcf",
 		};
+		if (verboseCheck.isSelected()) addMessage(StringArray2String(command) + "\n");
 		addMessage("--- map . . .             ");
 		err = executeWin(command, projectDir);
 		if (err == 0) addMessage("done\n"); else addMessage("** errors found\n");
 		if (err != 0) return;
 		
-		//- exï¿½cuter (place and route, par):
+		//- exécuter (place and route, par):
 		//par -ise myproj.ise -w -intstyle ise -ol std -t 1 myproj.ncd myproj.ncd myproj.pcf
 		command = new String[] { System.getenv("XILINX") + "\\bin\\nt\\"+"par.exe",
 			"-ise", topModuleName + ".ise",
@@ -644,12 +697,13 @@ public class SHDL2VHDLConverter extends JFrame {
 			topModuleName + ".ncd",
 			topModuleName + ".pcf",
 		};
+		if (verboseCheck.isSelected()) addMessage(StringArray2String(command) + "\n");
 		addMessage("--- place and route . . . ");
 		err = executeWin(command, projectDir);
 		if (err == 0) addMessage("done\n"); else addMessage("** errors found\n");
 		if (err != 0) return;
 		
-		//- exï¿½cuter:
+		//- exécuter:
 		//trce -ise myproj.ise -intstyle ise -e 3 -l 3 -s 5 -xml myproj myproj.ncd -o myproj.twr myproj.pcf -ucf Nexys.ucf
 		command = new String[] { System.getenv("XILINX") + "\\bin\\nt\\"+"trce.exe",
 			"-ise", topModuleName + ".ise",
@@ -662,12 +716,13 @@ public class SHDL2VHDLConverter extends JFrame {
 			topModuleName + ".pcf",
 			"-ucf", "Nexys.ucf",
 		};
+		if (verboseCheck.isSelected()) addMessage(StringArray2String(command) + "\n");
 		addMessage("--- trace . . .           ");
 		err = executeWin(command, projectDir);
 		if (err == 0) addMessage("done\n"); else addMessage("** errors found\n");
 		if (err != 0) return;
 
-		//- crï¿½er un fichier myproj.ut qui contient les options pour la bitgen
+		//- créer un fichier myproj.ut qui contient les options pour la bitgen
 		pw = new PrintWriter(new FileOutputStream(new File(projectDir, topModuleName + ".ut")));
 		pw.println("-w");
 		pw.println("-g DebugBitstream:No");
@@ -700,7 +755,7 @@ public class SHDL2VHDLConverter extends JFrame {
 		pw.flush();
 		pw.close();		
 		
-		//- exï¿½cuter (bitgen):
+		//- exécuter (bitgen):
 		//bitgen -ise myproj.ise -intstyle ise -f myproj.ut myproj.ncd
 		command = new String[] { System.getenv("XILINX") + "\\bin\\nt\\" + "bitgen.exe",
 			//"-ise", topModuleName + ".ise",
@@ -729,13 +784,14 @@ public class SHDL2VHDLConverter extends JFrame {
 			"-g", "DriveDone:No",
 			topModuleName + ".ncd",
 		};
+		if (verboseCheck.isSelected()) addMessage(StringArray2String(command) + "\n");
 		addMessage("--- bitgen. . .           ");
 		err = executeWin(command, projectDir);
 		if (err == 0) addMessage("done\n"); else addMessage("** errors found\n");
 		if (err != 0) return;
 		
-		// crï¿½ation du fichiers .mcs ï¿½ partir du fichier .bit
-		// gï¿½nï¿½ration d'un fichier impact.cmd
+		// création du fichiers .mcs à partir du fichier .bit
+		// génération d'un fichier impact.cmd
 		pw = new PrintWriter(new FileOutputStream(new File(projectDir, "impact.cmd")));
 		pw.println("setMode -pff");
 		pw.println("setSubmode -pffserial");
@@ -750,6 +806,7 @@ public class SHDL2VHDLConverter extends JFrame {
 		command = new String[] { System.getenv("XILINX") + "\\bin\\nt\\"+"impact.exe",
 			"-batch", "impact.cmd",
 		};
+		if (verboseCheck.isSelected()) addMessage(StringArray2String(command) + "\n");
 		addMessage("--- .mcs file creation. . . ");
 		err = executeWin(command, projectDir);
 		if (err == 0) addMessage("done\n"); else addMessage("** errors found\n");
@@ -757,7 +814,7 @@ public class SHDL2VHDLConverter extends JFrame {
 		
 	}
 	
-	// exï¿½cute <command> dans le rï¿½pertoire de travail <dir>, et affiche les messages normaux et d'erreur
+	// exécute <command> dans le répertoire de travail <dir>, et affiche les messages normaux et d'erreur
 	// renvoie la valeur de retour
 	int executeWin(String[] command, File dir) throws Exception {
 		ProcessBuilder builder = new ProcessBuilder(command);
@@ -788,7 +845,7 @@ public class SHDL2VHDLConverter extends JFrame {
 	}
 		
 	
-	// dï¿½truit le rï¿½pertoire <dir> et tout son contenu
+	// détruit le répertoire <dir> et tout son contenu
 	boolean deleteDir(File dir) {
 		File[] files = dir.listFiles();
 		for (int i = 0; i < files.length; i++) {

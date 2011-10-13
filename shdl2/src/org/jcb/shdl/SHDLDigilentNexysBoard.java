@@ -27,7 +27,8 @@ public class SHDLDigilentNexysBoard extends SHDLBoard {
 			"mem-addr", "mem-data", "mem_oe", "mem-we",
 			"mt-adv", "mt-clk", "mt-ub", "mt-lb", "mt-cf", "mt-cre", "mt-wait",
 			*/
-			"ja1_out", "ja2_out", "ja3_out", "ja4_out",
+			"red", "grn", "blue", "hs", "vs",
+			"ja_out", "jb_out", "jc_out", "jd_out",
 		};
 	}
 	public String[] getBoardIOStatus() {
@@ -37,6 +38,7 @@ public class SHDLDigilentNexysBoard extends SHDLBoard {
 			"out", "inout", "out", "out",
 			"out", "out", "out", "out", "out", "out", "out",
 			*/
+			"out", "out", "out", "out", "out",
 			"out", "out", "out", "out",
 		};
 	}
@@ -47,7 +49,8 @@ public class SHDLDigilentNexysBoard extends SHDLBoard {
 			23, 15, 0, 0,
 			0, 0, 0, 0, 0, 0, 0,
 			*/
-			0, 0, 0, 0,
+			2, 2, 1, 0, 0,
+			7, 7, 7, 7,
 		};
 	}
 	public int[] getBoardN2() {
@@ -57,6 +60,7 @@ public class SHDLDigilentNexysBoard extends SHDLBoard {
 			0, 0, 0, 0,
 			0, 0, 0, 0, 0, 0, 0,
 			*/
+			0, 0, 0, 0, 0,
 			0, 0, 0, 0,
 		};
 	}
@@ -68,7 +72,8 @@ public class SHDLDigilentNexysBoard extends SHDLBoard {
 			"0000000000000000", "inout", "1", "1",
 			"1", "1", "1", "1", "1", "1", "1",
 			*/
-			"0", "0", "0", "0",
+			"000", "000", "00", "0", "0",
+			"00000000", "00000000", "00000000", "00000000",
 		 };
 	}
 }
